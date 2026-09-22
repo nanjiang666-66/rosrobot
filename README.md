@@ -44,3 +44,7 @@ ros2 run course_bot_control basic_motion --ros-args \
 完整参数、旋转与矩形命令见 [控制包说明](src/course_bot_control/README.md)。不要同时向 `/cmd_vel` 运行多个控制节点。
 
 本项目会调用 ROS 2/Gazebo 官方提供的 `xacro`、`gazebo_ros` 启动器与生成机器人工具；这些外部依赖的实现语言不属于课程项目的自编代码。
+
+## 版本管理
+
+稳定功能保存在 `main`，后续 SLAM 探索功能在 `slam-exploration` 分支开发。日常提交、上传 GitHub、查看历史和恢复旧版本的方法见 [Git 与 GitHub 简明使用流程](docs/git-github-workflow.md)。
