@@ -1,0 +1,132 @@
+===== 时间 =====
+2026-09-18T15:10:59+08:00
+
+===== 当前锁占用 =====
+                     用户     进程号 权限   命令
+/var/lib/dpkg/lock-frontend:
+                     root      15614 F.... unattended-upgr
+/var/cache/apt/archives/lock:
+                     root      15614 F.... unattended-upgr
+
+===== 占锁进程详情 =====
+  15614   15586 root     Sl         35:26 16.6  3.8 Fri Sep 18 14:35:32 2026 /usr/bin/python3 /usr/bin/unattended-upgrade
+systemd(1)---apt.systemd.dai(15582)---apt.systemd.dai(15586)---unattended-upgr(15614)-+-unattended-upgr(131086)---unattended-upgr(1+
+                                                                                      |-{unattended-upgr}(15621)
+                                                                                      `-{unattended-upgr}(15622)
+
+===== apt 自动更新服务 =====
+● apt-daily.service - Daily apt download activities
+     Loaded: loaded (/lib/systemd/system/apt-daily.service; static)
+     Active: activating (start) since Fri 2026-09-18 14:39:14 CST; 31min ago
+TriggeredBy: ● apt-daily.timer
+       Docs: man:apt(8)
+   Main PID: 16414 (apt.systemd.dai)
+      Tasks: 2 (limit: 8728)
+     Memory: 472.0K
+        CPU: 28ms
+     CGroup: /system.slice/apt-daily.service
+             ├─16414 /bin/sh /usr/lib/apt/apt.systemd.daily update
+             └─16440 flock -w 3600 3
+
+9月 18 14:39:14 jiangnan-virtual-machine systemd[1]: Starting Daily apt download activities...
+
+● apt-daily-upgrade.service - Daily apt upgrade and clean activities
+     Loaded: loaded (/lib/systemd/system/apt-daily-upgrade.service; static)
+     Active: activating (start) since Fri 2026-09-18 12:36:51 CST; 2h 34min ago
+TriggeredBy: ● apt-daily-upgrade.timer
+       Docs: man:apt(8)
+   Main PID: 15582 (apt.systemd.dai)
+      Tasks: 11 (limit: 8728)
+     Memory: 2.5G
+        CPU: 34min 51.585s
+     CGroup: /system.slice/apt-daily-upgrade.service
+             ├─ 15582 /bin/sh /usr/lib/apt/apt.systemd.daily install
+             ├─ 15586 /bin/sh /usr/lib/apt/apt.systemd.daily lock_is_held install
+             ├─ 15614 /usr/bin/python3 /usr/bin/unattended-upgrade
+             ├─131086 /usr/bin/python3 /usr/bin/unattended-upgrade
+             ├─131226 /usr/bin/python3 /usr/bin/unattended-upgrade
+             ├─131234 sh -c "if [ -d /var/lib/update-notifier ]; then touch /var/lib/update-notifier/dpkg-run-stamp; fi; /usr/lib/update-notifier/update-motd-updates-available 2>/dev/null || true"
+             ├─131236 /bin/sh -e /usr/lib/update-notifier/update-motd-updates-available
+             ├─131250 /usr/bin/python3 /usr/lib/update-notifier/apt-check --human-readable ""
+             └─131691 /usr/bin/python3 -Es /usr/bin/lsb_release -c -s
+
+9月 18 12:36:51 jiangnan-virtual-machine systemd[1]: Starting Daily apt upgrade and clean activities...
+
+● unattended-upgrades.service - Unattended Upgrades Shutdown
+     Loaded: loaded (/lib/systemd/system/unattended-upgrades.service; enabled; vendor preset: enabled)
+     Active: active (running) since Fri 2026-02-06 15:35:54 CST; 7 months 10 days ago
+       Docs: man:unattended-upgrade(8)
+   Main PID: 1075 (unattended-upgr)
+      Tasks: 2 (limit: 8728)
+     Memory: 11.6M
+        CPU: 81ms
+     CGroup: /system.slice/unattended-upgrades.service
+             └─1075 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+
+2月 06 15:35:54 jiangnan-virtual-machine systemd[1]: Started Unattended Upgrades Shutdown.
+
+===== 最近 apt 日志 =====
+正在处理用于 libc-bin (2.35-0ubuntu3.11) 的触发器 ...
+Log ended: 2026-09-18  15:09:48
+
+Log started: 2026-09-18  15:10:02
+(正在读取数据库 ... (正在读取数据库 ... 5%(正在读取数据库 ... 10%(正在读取数据库 ... 15%(正在读取数据库 ... 20%(正在读取数据库 ... 25%(正在读取数据库 ... 30%(正在读取数据库 ... 35%(正在读取数据库 ... 40%(正在读取数据库 ... 45%(正在读取数据库 ... 50%(正在读取数据库 ... 55%(正在读取数据库 ... 60%(正在读取数据库 ... 65%(正在读取数据库 ... 70%(正在读取数据库 ... 75%(正在读取数据库 ... 80%(正在读取数据库 ... 85%(正在读取数据库 ... 90%(正在读取数据库 ... 95%(正在读取数据库 ... 100%(正在读取数据库 ... 系统当前共安装有 360477 个文件和目录。)
+准备解压 .../libgphoto2-port12_2.5.27-1ubuntu0.1_amd64.deb  ...
+正在解压 libgphoto2-port12:amd64 (2.5.27-1ubuntu0.1) 并覆盖 (2.5.27-1build2) ...
+正在设置 libgphoto2-port12:amd64 (2.5.27-1ubuntu0.1) ...
+正在处理用于 libc-bin (2.35-0ubuntu3.11) 的触发器 ...
+Log ended: 2026-09-18  15:10:03
+
+Log started: 2026-09-18  15:10:16
+(正在读取数据库 ... (正在读取数据库 ... 5%(正在读取数据库 ... 10%(正在读取数据库 ... 15%(正在读取数据库 ... 20%(正在读取数据库 ... 25%(正在读取数据库 ... 30%(正在读取数据库 ... 35%(正在读取数据库 ... 40%(正在读取数据库 ... 45%(正在读取数据库 ... 50%(正在读取数据库 ... 55%(正在读取数据库 ... 60%(正在读取数据库 ... 65%(正在读取数据库 ... 70%(正在读取数据库 ... 75%(正在读取数据库 ... 80%(正在读取数据库 ... 85%(正在读取数据库 ... 90%(正在读取数据库 ... 95%(正在读取数据库 ... 100%(正在读取数据库 ... 系统当前共安装有 360477 个文件和目录。)
+准备解压 .../libgdk-pixbuf2.0-bin_2.42.8+dfsg-1ubuntu0.5_amd64.deb  ...
+正在解压 libgdk-pixbuf2.0-bin (2.42.8+dfsg-1ubuntu0.5) 并覆盖 (2.42.8+dfsg-1ubuntu0.4) ...
+正在设置 libgdk-pixbuf2.0-bin (2.42.8+dfsg-1ubuntu0.5) ...
+正在处理用于 man-db (2.10.2-1) 的触发器 ...
+Log ended: 2026-09-18  15:10:16
+
+Log started: 2026-09-18  15:10:30
+(正在读取数据库 ... (正在读取数据库 ... 5%(正在读取数据库 ... 10%(正在读取数据库 ... 15%(正在读取数据库 ... 20%(正在读取数据库 ... 25%(正在读取数据库 ... 30%(正在读取数据库 ... 35%(正在读取数据库 ... 40%(正在读取数据库 ... 45%(正在读取数据库 ... 50%(正在读取数据库 ... 55%(正在读取数据库 ... 60%(正在读取数据库 ... 65%(正在读取数据库 ... 70%(正在读取数据库 ... 75%(正在读取数据库 ... 80%(正在读取数据库 ... 85%(正在读取数据库 ... 90%(正在读取数据库 ... 95%(正在读取数据库 ... 100%(正在读取数据库 ... 系统当前共安装有 360477 个文件和目录。)
+准备解压 .../printer-driver-postscript-hp_3.21.12+dfsg0-1ubuntu0.1_amd64.deb  ...
+正在解压 printer-driver-postscript-hp (3.21.12+dfsg0-1ubuntu0.1) 并覆盖 (3.21.12+dfsg0-1) ...
+正在设置 printer-driver-postscript-hp (3.21.12+dfsg0-1ubuntu0.1) ...
+正在处理用于 cups (2.4.1op1-1ubuntu4.21) 的触发器 ...
+Log ended: 2026-09-18  15:10:34
+
+Log started: 2026-09-18  15:10:48
+(正在读取数据库 ... (正在读取数据库 ... 5%(正在读取数据库 ... 10%(正在读取数据库 ... 15%(正在读取数据库 ... 20%(正在读取数据库 ... 25%(正在读取数据库 ... 30%(正在读取数据库 ... 35%(正在读取数据库 ... 40%(正在读取数据库 ... 45%(正在读取数据库 ... 50%(正在读取数据库 ... 55%(正在读取数据库 ... 60%(正在读取数据库 ... 65%(正在读取数据库 ... 70%(正在读取数据库 ... 75%(正在读取数据库 ... 80%(正在读取数据库 ... 85%(正在读取数据库 ... 90%(正在读取数据库 ... 95%(正在读取数据库 ... 100%(正在读取数据库 ... 系统当前共安装有 360477 个文件和目录。)
+准备解压 .../ubuntu-pro-client-l10n_37.2ubuntu~22.04.1_amd64.deb  ...
+正在解压 ubuntu-pro-client-l10n (37.2ubuntu~22.04.1) 并覆盖 (33.2~22.04) ...
+准备解压 .../ubuntu-pro-client_37.2ubuntu~22.04.1_amd64.deb  ...
+正在解压 ubuntu-pro-client (37.2ubuntu~22.04.1) 并覆盖 (33.2~22.04) ...
+正在设置 ubuntu-pro-client (37.2ubuntu~22.04.1) ...
+正在安装新版本配置文件 /etc/apparmor.d/ubuntu_pro_apt_news ...
+正在安装新版本配置文件 /etc/apparmor.d/ubuntu_pro_esm_cache ...
+正在安装新版本配置文件 /etc/apt/apt.conf.d/20apt-esm-hook.conf ...
+正在设置 ubuntu-pro-client-l10n (37.2ubuntu~22.04.1) ...
+正在处理用于 man-db (2.10.2-1) 的触发器 ...
+Log ended: 2026-09-18  15:10:50
+
+===== 最近 unattended-upgrades 日志 =====
+2026-09-17 21:57:00,748 WARNING Could not figure out development release: Distribution data outdated. Please check for an update for distro-info-data. See /usr/share/doc/distro-info-data/README.Debian for details.
+2026-09-17 21:57:00,749 INFO 启动无人照管的更新脚本
+2026-09-17 21:57:00,749 INFO 允许的源：o=Ubuntu,a=jammy, o=Ubuntu,a=jammy-security, o=UbuntuESMApps,a=jammy-apps-security, o=UbuntuESM,a=jammy-infra-security
+2026-09-17 21:57:00,749 INFO 初始黑名单：
+2026-09-17 21:57:00,749 INFO 初始白名单（not strict）：
+2026-09-17 22:01:01,258 ERROR GetArchives() failed: E:Can't find a source to download version '2.9.13+dfsg-1ubuntu0.11' of 'libxml2-utils:amd64'
+2026-09-17 22:01:01,492 ERROR URI  下载失败，正在中止
+2026-09-17 22:25:14,262 WARNING Could not figure out development release: Distribution data outdated. Please check for an update for distro-info-data. See /usr/share/doc/distro-info-data/README.Debian for details.
+2026-09-17 22:25:14,262 INFO 启动无人照管的更新脚本
+2026-09-17 22:25:14,262 INFO 允许的源：o=Ubuntu,a=jammy, o=Ubuntu,a=jammy-security, o=UbuntuESMApps,a=jammy-apps-security, o=UbuntuESM,a=jammy-infra-security
+2026-09-17 22:25:14,262 INFO 初始黑名单：
+2026-09-17 22:25:14,262 INFO 初始白名单（not strict）：
+2026-09-18 12:36:52,191 WARNING Could not figure out development release: Distribution data outdated. Please check for an update for distro-info-data. See /usr/share/doc/distro-info-data/README.Debian for details.
+2026-09-18 12:36:52,191 INFO 启动无人照管的更新脚本
+2026-09-18 12:36:52,191 INFO 允许的源：o=Ubuntu,a=jammy, o=Ubuntu,a=jammy-security, o=UbuntuESMApps,a=jammy-apps-security, o=UbuntuESM,a=jammy-infra-security
+2026-09-18 12:36:52,191 INFO 初始黑名单：
+2026-09-18 12:36:52,191 INFO 初始白名单（not strict）：
+2026-09-18 14:40:27,532 INFO 将要升级的软件包：accountsservice avahi-autoipd avahi-daemon avahi-utils bind9-dnsutils bind9-host bind9-libs bsdextrautils bsdutils bubblewrap bzip2 bzip2-doc ca-certificates coreutils cpio cpp-11 cups cups-bsd cups-client cups-common cups-core-drivers cups-daemon cups-ipp-utils cups-ppdc cups-server-common curl diffutils distro-info-data dnsmasq-base eject evince evince-common evolution-data-server evolution-data-server-common fdisk fonts-opensymbol g++-11 gcc-11 gcc-11-base gcc-12-base gfortran-11 gir1.2-accountsservice-1.0 gir1.2-gdkpixbuf-2.0 gir1.2-gst-plugins-base-1.0 gir1.2-packagekitglib-1.0 gir1.2-polkit-1.0 gir1.2-soup-2.4 git git-man gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-packagekit gstreamer1.0-pipewire gstreamer1.0-plugins-base gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-good gstreamer1.0-pulseaudio gstreamer1.0-x gvfs gvfs-backends gvfs-common gvfs-daemons gvfs-fuse gvfs-libs gzip hplip hplip-data intel-microcode kmod krb5-multidev libaccountsservice0 libaprutil1 libaprutil1-dev libarchive13 libasan6 libasound2 libasound2-data libasound2-dev libatomic1 libatopology2 libattr1 libavahi-client3 libavahi-common-data libavahi-common3 libavahi-core7 libavahi-glib1 libavahi-ui-gtk3-0 libblkid-dev libblkid1 libbz2-1.0 libbz2-dev libc-bin libc-dev-bin libc-devtools libc6 libc6-dbg libc6-dev libcaca0 libcairo-gobject2 libcairo-script-interpreter2 libcairo2 libcamel-1.2-63 libcap-dev libcap2 libcap2-bin libcc1-0 libcups2 libcupsimage2 libcurl3-gnutls libcurl4 libcurl4-openssl-dev libdjvulibre-text libdjvulibre21 libebackend-1.2-10 libebook-1.2-20 libebook-contacts-1.2-3 libecal-2.0-1 libedata-book-1.2-26 libedata-cal-2.0-1 libedataserver-1.2-26 libedataserverui-1.2-3 libegl-mesa0 libegl1-mesa-dev libevdocument3-4 libevent-2.1-7 libevent-core-2.1-7 libevent-dev libevent-extra-2.1-7 libevent-openssl-2.1-7 libevent-pthreads-2.1-7 libevview3-3 libexif-dev libexif-doc libexif12 libexiv2-27 libexpat1 libexpat1-dev libfdisk1 libfreerdp-client2-2 libfreerdp-server2-2 libfreerdp2-2 libgbm-dev libgbm1 libgcc-11-dev libgcc-s1 libgcrypt20 libgdk-pixbuf-2.0-0 libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common libgfortran-11-dev libgfortran5 libgif-dev libgif7 libgl1-amber-dri libgl1-mesa-dev libgl1-mesa-dri libglapi-mesa libglib2.0-data libglx-mesa0 libgnutls30 libgomp1 libgphoto2-6 libgphoto2-dev libgphoto2-l10n libgphoto2-port12 libgraphite2-3 libgssapi-krb5-2 libgssrpc4 libgstreamer-gl1.0-0 libgstreamer-plugins-base1.0-0 libgstreamer-plugins-good1.0-0 libhpmud0 libhtml-parser-perl libhttp-daemon-perl libhttp-date-perl libidn12 libinput-bin libinput10 libitm1 libjbig2dec0 libk5crypto3 libkadm5clnt-mit12 libkadm5srv-mit12 libkdb5-10 libkmod2 libkpathsea6 libkrb5-3 libkrb5-dev libkrb5support0 liblcms2-2 liblcms2-dev liblcms2-utils liblsan0 liblzma-dev liblzma5 libmount-dev libmount1 libmysqlclient-dev libmysqlclient21 libncurses-dev libncurses5-dev libncurses6 libncursesw6 libnfs13 libnghttp2-14 libnss-systemd libnss3 libntfs-3g89 libopenjp2-7 libopenjp2-7-dev libp11-kit0 libpackagekit-glib2-18 libpam-cap libpam-modules libpam-modules-bin libpam-runtime libpam-sss libpam-systemd libpam0g libperl5.34 libpipewire-0.3-0 libpipewire-0.3-common libpipewire-0.3-modules libpng-dev libpng-tools libpng16-16 libpolkit-agent-1-0 libpolkit-gobject-1-0 libpoppler-cpp0v5 libpoppler-dev libpoppler-glib8 libpoppler-private-dev libpoppler118 libpq-dev libpq5 libprotobuf-dev libprotobuf-lite23 libprotobuf23 libprotoc-dev libprotoc23 libpython3.10 libpython3.10-dev libpython3.10-minimal libpython3.10-stdlib libquadmath0 librabbitmq4 libraw20 libreoffice-base-core libreoffice-calc libreoffice-common libreoffice-core libreoffice-draw libreoffice-gnome libreoffice-gtk3 libreoffice-help-common libreoffice-help-en-us libreoffice-help-zh-cn libreoffice-impress libreoffice-l10n-zh-cn libreoffice-math libreoffice-ogltrans libreoffice-pdfimport libreoffice-style-breeze libreoffice-style-colibre libreoffice-style-elementary libreoffice-style-yaru libreoffice-writer libsane-hpaio libsmartcols1 libsmbclient libsoup-gnome2.4-1 libsoup2.4-1 libsoup2.4-common libspa-0.2-modules libsqlite3-0 libsqlite3-dev libssh-4 libssh-gcrypt-4 libssl-dev libssl3 libstdc++-11-dev libstdc++6 libsynctex2 libsystemd0 libtiff-dev libtiff5 libtiffxx5 libtinfo6 libtsan0 libubsan1 libudev-dev libudev1 libuno-cppu3 libuno-cppuhelpergcc3-3 libuno-purpenvhelpergcc3-3 libuno-sal3 libuno-salhelpergcc3-3 libuuid1 libvncclient1 libvncserver1 libvpx7 libwbclient0 libwinpr2-2 libwww-perl libxatracker2 libxfont2 libxml-parser-perl libxml2 libxml2-dev libxml2-utils libxpm-dev libxpm4 libyelp0 linux-generic-hwe-22.04 linux-headers-generic-hwe-22.04 linux-image-generic-hwe-22.04 linux-libc-dev linux-tools-common locales mailcap mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers mount nano ncurses-base ncurses-bin ntfs-3g openjdk-11-jdk openjdk-11-jdk-headless openjdk-11-jre openjdk-11-jre-headless openssh-client openssl openvpn p11-kit p11-kit-modules packagekit packagekit-tools perl perl-base perl-modules-5.34 pipewire pipewire-bin pkexec policykit-1 polkitd poppler-utils printer-driver-hpcups printer-driver-postscript-hp protobuf-compiler python3-cryptography python3-httplib2 python3-idna python3-jwt python3-mako python3-pil python3-pil.imagetk python3-protobuf python3-uno python3-urllib3 python3.10 python3.10-dev python3.10-minimal rfkill rsync rsyslog samba-libs sed snapd spice-vdagent sudo systemd systemd-oomd systemd-sysv systemd-timesyncd tar thunderbird-locale-en-us thunderbird-locale-zh-cn tracker-extract tracker-miner-fs transmission-common transmission-gtk tzdata ubuntu-advantage-tools ubuntu-pro-client ubuntu-pro-client-l10n udev uno-libs-private ure util-linux uuid-dev uuid-runtime vim-common vim-tiny wget wireless-regdb xdg-dbus-proxy xxd xz-utils yelp
+2026-09-18 14:40:27,532 INFO Writing dpkg log to /var/log/unattended-upgrades/unattended-upgrades-dpkg.log
+
+===== 诊断结束 =====
+本脚本只读取状态，没有停止进程，也没有删除锁文件。

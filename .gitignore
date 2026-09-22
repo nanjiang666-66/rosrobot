@@ -1,0 +1,8 @@
+/build/
+/install/
+/log/
+/.vscode/
+/videos/
+*.pyc
+__pycache__/
+*.broken-backup-*

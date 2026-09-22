@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <world name="course_obstacles">
+    <!-- Gazebo 自带的光源和唯一地面；不要再从 Insert 面板重复添加 Ground Plane。 -->
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <physics name="default_physics" type="ode">
+      <real_time_update_rate>1000</real_time_update_rate>
+      <max_step_size>0.001</max_step_size>
+    </physics>
+
+    <!-- 发布 Gazebo 中所有模型的真实世界位姿，供规划器重启后重新定位。 -->
+    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+      <ros><namespace>/gazebo</namespace></ros>
+      <update_rate>20</update_rate>
+    </plugin>
+
+    <gui fullscreen="0">
+      <camera name="course_camera"><pose>-7 -9 8 0 0.55 0.75</pose></camera>
+    </gui>
+
+    <!--
+      10 m × 10 m 场地的四面边界墙。墙的内表面位于 x/y = ±5 m：
+      一方面阻止机器人驶出课程区域，另一方面让 360° 雷达在开放方向也有有效回波，
+      从而使 SLAM 能把墙内空间标记为已知自由区。
+    -->
+    <model name="boundary_west">
+      <static>true</static><pose>-5.1 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 10.4 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 10.4 1.0</size></box></geometry>
+          <material><ambient>0.35 0.35 0.38 1</ambient><diffuse>0.35 0.35 0.38 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="boundary_east">
+      <static>true</static><pose>5.1 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 10.4 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 10.4 1.0</size></box></geometry>
+          <material><ambient>0.35 0.35 0.38 1</ambient><diffuse>0.35 0.35 0.38 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="boundary_south">
+      <static>true</static><pose>0 -5.1 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>10.0 0.2 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>10.0 0.2 1.0</size></box></geometry>
+          <material><ambient>0.35 0.35 0.38 1</ambient><diffuse>0.35 0.35 0.38 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="boundary_north">
+      <static>true</static><pose>0 5.1 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>10.0 0.2 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>10.0 0.2 1.0</size></box></geometry>
+          <material><ambient>0.35 0.35 0.38 1</ambient><diffuse>0.35 0.35 0.38 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_box_1">
+      <static>true</static>
+      <pose>-1.0 -1.2 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.0 1.0 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.0 1.0 1.0</size></box></geometry>
+          <material><ambient>0.8 0.2 0.15 1</ambient><diffuse>0.8 0.2 0.15 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_box_2">
+      <static>true</static>
+      <pose>1.5 1.0 0.4 0 0 0.35</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.4 0.7 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.4 0.7 0.8</size></box></geometry>
+          <material><ambient>0.15 0.65 0.25 1</ambient><diffuse>0.15 0.65 0.25 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_cylinder">
+      <static>true</static>
+      <pose>3.0 -1.5 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.55</radius><length>1.2</length></cylinder></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.55</radius><length>1.2</length></cylinder></geometry>
+          <material><ambient>0.9 0.65 0.1 1</ambient><diffuse>0.9 0.65 0.1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_sphere">
+      <static>true</static>
+      <pose>0.5 -2.7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><sphere><radius>0.45</radius></sphere></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><sphere><radius>0.45</radius></sphere></geometry>
+          <material><ambient>0.25 0.35 0.9 1</ambient><diffuse>0.25 0.35 0.9 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 用户在 Gazebo 中新增的静态箱体，已从损坏的保存文件中恢复。 -->
+    <model name="unit_box">
+      <static>true</static>
+      <pose>0.401851 2.89817 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1 1 1</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1 1 1</size></box></geometry>
+          <material><ambient>0.65 0.65 0.65 1</ambient><diffuse>0.65 0.65 0.65 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

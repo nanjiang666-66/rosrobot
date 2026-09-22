@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- 课程障碍物世界与仿真时间；可在命令行用 world:=... 覆盖。 -->
+  <arg name="world" default="$(find-pkg-share course_bot_gazebo)/worlds/course_obstacles.world" />
+  <arg name="use_sim_time" default="true" />
+
+  <!-- 使用 ROS 2 自带的 Gazebo Classic 启动器。 -->
+  <include file="$(find-pkg-share gazebo_ros)/launch/gazebo.launch.py">
+    <arg name="world" value="$(var world)" />
+    <arg name="verbose" value="false" />
+  </include>
+
+  <!-- xacro 是模型配置转换工具；type=str 防止 URDF 文本被解析成 YAML。 -->
+  <node pkg="robot_state_publisher" exec="robot_state_publisher" output="screen">
+    <param name="robot_description" type="str"
+           value="$(command 'xacro $(find-pkg-share course_bot_description)/urdf/course_bot/course_bot.urdf.xacro')" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
+  </node>
+
+  <!-- Gazebo 官方工具从 robot_description 话题生成机器人；位置保持原值。 -->
+  <node pkg="gazebo_ros" exec="spawn_entity.py" output="screen"
+        args="-entity course_bot -topic robot_description -x -4.0 -y -3.0 -z 0.05" />
+</launch>

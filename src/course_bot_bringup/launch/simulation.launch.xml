@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- 顶层入口：以后按需在这里接入 C++ 的规划和控制节点。 -->
+  <include file="$(find-pkg-share course_bot_gazebo)/launch/gazebo.launch.xml" />
+</launch>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="use_sim_time" default="true" />
+  <arg name="start_simulation" default="true" />
+  <arg name="rviz" default="true" />
+  <!-- 可在 ros2 launch 命令末尾覆盖；单位分别是 m/s 和 rad/s。 -->
+  <arg name="max_linear" default="0.08" />
+  <arg name="max_angular" default="0.25" />
+
+  <!-- 默认一条命令启动全部组件；Gazebo 已经运行时可传 start_simulation:=false。 -->
+  <include file="$(find-pkg-share course_bot_bringup)/launch/simulation.launch.xml"
+           if="$(var start_simulation)" />
+
+  <!--
+    稳定课程模式：启动时从 SDF 读取全部固定障碍；运行中新物体由 /scan
+    加入临时障碍层。该节点独立发布 /map 与 map -> odom，不同时启动 SLAM。
+  -->
+  <node pkg="course_bot_planner" exec="astar_planner"
+        name="course_bot_astar_planner" output="screen">
+    <param name="use_sim_time" value="$(var use_sim_time)" />
+    <param name="map_source" value="sdf" />
+    <param name="use_gazebo_model_states" value="true" />
+    <param name="plan_initial_goal" value="false" />
+    <param name="enable_dynamic_obstacles" value="true" />
+    <param name="dynamic_scan_max_range" value="5.0" />
+  </node>
+
+  <!-- 自编 C++ 路径跟踪器：把 /planned_path 转为 /cmd_vel。 -->
+  <node pkg="course_bot_control" exec="path_follower"
+        name="course_bot_path_follower" output="screen">
+    <param name="use_sim_time" value="$(var use_sim_time)" />
+    <param name="max_linear" value="$(var max_linear)" />
+    <param name="max_angular" value="$(var max_angular)" />
+  </node>
+
+  <node pkg="rviz2" exec="rviz2" name="course_bot_navigation_rviz" output="screen"
+        args="-d $(find-pkg-share course_bot_slam)/rviz/mapping.rviz"
+        if="$(var rviz)" />
+</launch>

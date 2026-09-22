@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- 轻量模型预览：无关节滑块，沿用原 rviz/display.launch.py 的行为。 -->
+  <node pkg="robot_state_publisher" exec="robot_state_publisher"
+        name="robot_state_publisher" output="screen">
+    <param name="robot_description" type="str"
+           value="$(command 'xacro $(find-pkg-share course_bot_description)/urdf/course_bot/course_bot.urdf.xacro')" />
+    <param name="use_sim_time" type="bool" value="false" />
+  </node>
+  <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" />
+</launch>

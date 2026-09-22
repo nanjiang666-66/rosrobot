@@ -1,0 +1,46 @@
+===== 第一阶段只读验收 =====
+时间：2026-09-18T16:06:23+08:00
+说明：本脚本不执行 sudo、apt 或软件安装。
+
+===== 1. 操作系统 =====
+PASS    Ubuntu 22.04
+PASS    架构 x86_64
+内核：6.8.0-138-generic
+
+===== 2. ROS 2 环境 =====
+PASS    /opt/ros/humble/setup.bash
+PASS    ROS_DISTRO=humble
+
+===== 3. 必需命令 =====
+PASS    ros2 -> /opt/ros/humble/bin/ros2
+PASS    gazebo -> /usr/bin/gazebo
+PASS    rviz2 -> /opt/ros/humble/bin/rviz2
+PASS    colcon -> /usr/bin/colcon
+PASS    rosdep -> /usr/bin/rosdep
+PASS    xacro -> /opt/ros/humble/bin/xacro
+
+===== 4. 必需 ROS 包 =====
+PASS    gazebo_ros -> /opt/ros/humble
+PASS    gazebo_plugins -> /opt/ros/humble
+PASS    xacro -> /opt/ros/humble
+PASS    robot_state_publisher -> /opt/ros/humble
+PASS    nav2_bringup -> /opt/ros/humble
+PASS    slam_toolbox -> /opt/ros/humble
+PASS    robot_localization -> /opt/ros/humble
+
+===== 5. Gazebo版本 =====
+Gazebo multi-robot simulator, version 11.10.2
+Copyright (C) 2012 Open Source Robotics Foundation.
+Released under the Apache 2 License.
+http://gazebosim.org
+PASS    Gazebo Classic 11
+
+===== 6. ROS 2发布/订阅测试 =====
+PASS    能够从 /chatter 收到消息
+
+===== 7. Gazebo与ROS 2联通测试 =====
+PASS    Gazebo发布 /clock
+
+===== 最终结果 =====
+PHASE_1_RESULT=PASS
+第一阶段环境验收通过。

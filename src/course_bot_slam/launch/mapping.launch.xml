@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="use_sim_time" default="true" />
+  <arg name="rviz" default="true" />
+  <arg name="slam_params_file"
+       default="$(find-pkg-share course_bot_slam)/config/mapper_params_online_async.yaml" />
+
+  <!-- 使用 ROS 2 Humble 官方异步 SLAM 启动器；参数保存在本课程包中。 -->
+  <include file="$(find-pkg-share slam_toolbox)/launch/online_async_launch.py">
+    <arg name="use_sim_time" value="$(var use_sim_time)" />
+    <arg name="slam_params_file" value="$(var slam_params_file)" />
+  </include>
+
+  <node pkg="rviz2" exec="rviz2" name="course_bot_slam_rviz" output="screen"
+        args="-d $(find-pkg-share course_bot_slam)/rviz/mapping.rviz"
+        if="$(var rviz)" />
+</launch>

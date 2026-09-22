@@ -1,0 +1,12 @@
+[INFO] [1789718786.154600270] [talker]: Publishing: 'Hello World: 1'
+[INFO] [1789718787.154605034] [talker]: Publishing: 'Hello World: 2'
+[INFO] [1789718788.154654739] [talker]: Publishing: 'Hello World: 3'
+[INFO] [1789718789.155932811] [talker]: Publishing: 'Hello World: 4'
+[INFO] [1789718790.154844410] [talker]: Publishing: 'Hello World: 5'
+[INFO] [1789718791.154650628] [talker]: Publishing: 'Hello World: 6'
+[INFO] [1789718792.155194710] [talker]: Publishing: 'Hello World: 7'
+[INFO] [1789718793.154958384] [talker]: Publishing: 'Hello World: 8'
+[INFO] [1789718794.154425451] [talker]: Publishing: 'Hello World: 9'
+[INFO] [1789718795.154742805] [talker]: Publishing: 'Hello World: 10'
+[INFO] [1789718796.154406286] [talker]: Publishing: 'Hello World: 11'
+[INFO] [1789718797.050615883] [rclcpp]: signal_handler(signum=15)
