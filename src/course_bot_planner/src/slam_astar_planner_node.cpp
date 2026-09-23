@@ -38,6 +38,14 @@
 
 namespace {
 
+// 保留 /map 原始语义，避免障碍膨胀后只能笼统报告“不可通行”。
+enum class CellSemantic : std::uint8_t {
+  Free,
+  Unknown,
+  Occupied,
+  Inflated,
+};
+
 std::optional<double> yaw_from_quaternion(const geometry_msgs::msg::Quaternion &q) {
   const double norm = std::sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
   if (!std::isfinite(norm) || norm < 1e-9) return std::nullopt;
@@ -200,6 +208,7 @@ private:
     const double origin_y = message->info.origin.position.y;
     auto incoming = std::make_unique<course_bot_planner::CourseWorldMap>(
         width, height, resolution, origin_x, origin_y);
+    std::vector<CellSemantic> incoming_semantics(expected, CellSemantic::Free);
 
     // inflation_sources 只包含实体障碍，以及未知区边缘。
     // 不膨胀未知区深处，能避免每秒对大面积未知格做重复计算。
@@ -213,6 +222,11 @@ private:
         const auto value = message->data[index(x, y)];
         const bool occupied = value >= occupied_threshold_;
         const bool unknown = value < 0;
+        if (occupied) {
+          incoming_semantics[index(x, y)] = CellSemantic::Occupied;
+        } else if (unknown) {
+          incoming_semantics[index(x, y)] = CellSemantic::Unknown;
+        }
         const bool blocked = occupied || (unknown_is_blocked_ && unknown);
         if (blocked) incoming->grid.set_blocked({x, y});
         // 未知区允许探索时仍提高进入代价，避免 A* 为了几格距离盲目穿越大片未知区域。
@@ -257,6 +271,8 @@ private:
           const auto center = incoming->cell_center(cell);
           if (std::hypot(center.x - source_center.x, center.y - source_center.y) <= inflation) {
             incoming->grid.set_blocked(cell);
+            auto &semantic = incoming_semantics[index(cell.x, cell.y)];
+            if (semantic == CellSemantic::Free) semantic = CellSemantic::Inflated;
           }
         }
       }
@@ -271,6 +287,7 @@ private:
                          !same_grid(*static_grid_, incoming->grid);
 
     map_ = std::move(incoming);
+    cell_semantics_ = std::move(incoming_semantics);
     static_grid_.emplace(map_->grid);
     map_load_time_ = message->info.map_load_time;
     if (!same_geometry) reset_dynamic_storage();
@@ -345,9 +362,10 @@ private:
       return;
     }
     if (!map_->grid.traversable(*cell)) {
+      const auto reason = blocked_reason(*cell);
       RCLCPP_ERROR(get_logger(),
-                   "拒绝新目标 %s：位于障碍物或安全膨胀区。",
-                   point_text(candidate.x, candidate.y).c_str());
+                   "拒绝新目标 %s：位于%s。",
+                   point_text(candidate.x, candidate.y).c_str(), reason.c_str());
       return;
     }
     goal_ = candidate;
@@ -414,6 +432,26 @@ private:
 
   std::size_t cell_index(course_bot_planner::Cell cell) const {
     return static_cast<std::size_t>(cell.y) * map_->grid.width() + cell.x;
+  }
+
+  std::string blocked_reason(course_bot_planner::Cell cell) const {
+    if (!map_ || !map_->grid.in_bounds(cell)) return "地图范围外";
+    const auto i = cell_index(cell);
+    if (i < dynamic_mask_.size() && dynamic_mask_[i]) {
+      return "临时障碍物或其安全膨胀区";
+    }
+    if (i >= cell_semantics_.size()) return "不可通行区域";
+    switch (cell_semantics_[i]) {
+      case CellSemantic::Unknown:
+        return "未知区域";
+      case CellSemantic::Occupied:
+        return "原始障碍物";
+      case CellSemantic::Inflated:
+        return "障碍物安全膨胀区";
+      case CellSemantic::Free:
+        return "不可通行区域";
+    }
+    return "不可通行区域";
   }
 
   course_bot_planner::Cell cell_from_index(std::size_t index) const {
@@ -488,8 +526,9 @@ private:
       return;
     }
     if (!map_->grid.traversable(*start_cell)) {
+      const auto reason = blocked_reason(*start_cell);
       publish_plan_failure(new_path, "当前起点 " + point_text(start_world.x, start_world.y) +
-                                     " 位于障碍物或膨胀区");
+                                     " 位于" + reason);
       return;
     }
     if (!goal_cell) {
@@ -498,8 +537,9 @@ private:
       return;
     }
     if (!map_->grid.traversable(*goal_cell)) {
+      const auto reason = blocked_reason(*goal_cell);
       publish_plan_failure(new_path, "目标点 " + point_text(goal_.x, goal_.y) +
-                                     " 位于障碍物或膨胀区");
+                                     " 位于" + reason);
       return;
     }
 
@@ -629,6 +669,7 @@ private:
   std::vector<int> dynamic_candidate_hits_;
   std::vector<Clock::time_point> dynamic_last_seen_;
   std::vector<std::uint8_t> dynamic_mask_;
+  std::vector<CellSemantic> cell_semantics_;
   builtin_interfaces::msg::Time map_load_time_;
   nav_msgs::msg::OccupancyGrid planning_map_message_;
   nav_msgs::msg::Path path_message_;

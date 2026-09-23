@@ -56,6 +56,15 @@ ros2 launch course_bot_slam slam_mapping.launch.xml
 它不会启动 A* 或路径跟踪器。手动扫描、同时保存占据地图与 SLAM 位姿图的方法见
 [`course_bot_slam` 说明](src/course_bot_slam/README.md)。
 
+地图保存后，正式的“SLAM 定位 + 自编 C++ A*”入口为：
+
+```bash
+ros2 launch course_bot_slam slam_navigation.launch.xml
+```
+
+该模式只使用 `/map`、`/goal_pose` 和 `TF(map → base_footprint)`，不会从 SDF 或
+`/gazebo/model_states` 获取障碍和机器人真值。
+
 ## 版本管理
 
 稳定功能保存在 `main`，后续 SLAM 探索功能在 `slam-exploration` 分支开发。日常提交、上传 GitHub、查看历史和恢复旧版本的方法见 [Git 与 GitHub 简明使用流程](docs/git-github-workflow.md)。

@@ -4,6 +4,7 @@
 
 - `slam_mapping.launch.xml`：课程建图总入口，一条命令启动 Gazebo、机器人、SLAM 和 RViz。
 - `mapping.launch.xml`：底层建图入口，只启动 SLAM 和 RViz，供 Gazebo 已运行时复用。
+- `slam_navigation.launch.xml`：加载已保存位姿图，运行 SLAM 定位、自编 A* 和路径跟踪。
 - `navigation.launch.xml`：稳定课程导航，启动 Gazebo、SDF 基础地图、自编 C++ A*、
   激光临时障碍检测、自编 C++ 路径跟踪器和 RViz。
 
@@ -132,6 +133,70 @@ SLAM Toolbox 定位时四个文件都保留，尤其不能只保留 `PGM/YAML`�
 5. `maps/` 中生成并核对四个 `course_map` 文件。
 
 本阶段只完成手动建图与保存，不启动 A*、路径跟踪器或自主探索。
+
+## SLAM 固定地图定位与 A* 导航
+
+前提是 `maps/` 已经包含同名前缀的四个 `course_map` 文件。先关闭建图模式、键盘遥控、
+旧 SDF 规划器和其他 `/cmd_vel` 发布节点，然后重新构建：
+
+```bash
+cd /mnt/hgfs/ubuntu-workspace/robot_nav_course
+bash scripts/stage2_build.sh
+source ~/robot_nav_course_colcon_cpp/install/setup.bash
+ros2 launch course_bot_slam slam_navigation.launch.xml
+```
+
+该命令会启动：
+
+1. Gazebo 和机器人；
+2. SLAM Toolbox 定位模式，并加载 `course_map.posegraph/data`；
+3. 只消费 `/map` 和 TF 的自编 C++ `slam_astar_planner`；
+4. C++ `path_follower`；
+5. RViz。
+
+Gazebo 每次都从建图时的起点生成机器人，因此配置默认使用位姿图首节点定位。等待地图、
+机器人模型和 `map → odom → base_footprint` 全部稳定后再设置目标。如果机器人显示位置明显
+不正确，在 RViz 顶部选择 **2D Pose Estimate**，在机器人实际起点点击并拖出朝向，然后等待
+激光与地图匹配。
+
+定位正常后，在 RViz 顶部选择 **2D Goal Pose**，只能在已经扫描出的白色自由区点击目标。
+规划器会把机器人当前 `map` 坐标作为起点，运行自编 A*，发布 `/planned_path`，路径跟踪器再
+发布 `/cmd_vel`。目标箭头的方向暂不参与最终姿态控制，只使用目标 `x/y`。
+
+正式验收模式固定为：
+
+- 不读取 Gazebo SDF 障碍坐标；
+- 不订阅 `/gazebo/model_states`；
+- 未知灰色区域不可通行；
+- 关闭规划器的临时动态障碍层；
+- 雷达仍保留近距离紧急停车保护；
+- 不进行自主探索。
+
+因此，建图后才临时放入 Gazebo 的新障碍不会成为本次 A* 的长期地图来源。小车靠近它时会
+停车，但不会把它作为主要验收内容自动绕行；正式演示应使用建图时已经扫描并保存的障碍。
+
+常用检查命令：
+
+```bash
+ros2 run tf2_ros tf2_echo map base_footprint
+ros2 topic echo /map --once
+ros2 topic echo /goal_pose --once
+ros2 topic echo /planned_path --once
+ros2 topic info /map -v
+```
+
+`/map` 应由 `slam_toolbox` 发布，不能同时出现旧 SDF 规划器。规划失败时，C++ 节点会分别提示
+目标超出地图、位于未知区域、原始障碍物、安全膨胀区，或 A* 没有可行路径。
+
+可以在启动命令末尾调整路径跟踪速度：
+
+```bash
+ros2 launch course_bot_slam slam_navigation.launch.xml \
+  max_linear:=0.10 max_angular:=0.30
+```
+
+如果 Gazebo 已经运行，可追加 `start_simulation:=false`。不要让建图模式和定位导航模式同时
+运行，因为它们都会启动 `slam_toolbox` 并发布 `map → odom`。
 
 ## 稳定导航：基础地图 + 临时障碍
 

@@ -17,4 +17,10 @@ colcon --log-base "${output_dir}/log" build \
 echo
 echo "Build completed. Run:"
 echo "  source ${output_dir}/install/setup.bash"
+echo
+echo "SLAM mapping:"
+echo "  ros2 launch course_bot_slam slam_mapping.launch.xml"
+echo "SLAM saved-map navigation:"
+echo "  ros2 launch course_bot_slam slam_navigation.launch.xml"
+echo "Legacy SDF navigation:"
 echo "  ros2 launch course_bot_slam navigation.launch.xml"

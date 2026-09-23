@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!--
+    正式课程导航：SLAM Toolbox 定位 + 自编 C++ A* + C++ 路径跟踪。
+    本入口不读取 SDF 障碍坐标，也不读取 Gazebo 真值位姿。
+  -->
+  <arg name="use_sim_time" default="true" />
+  <arg name="start_simulation" default="true" />
+  <arg name="rviz" default="true" />
+  <arg name="max_linear" default="0.08" />
+  <arg name="max_angular" default="0.25" />
+  <arg name="slam_params_file"
+       default="$(find-pkg-share course_bot_slam)/config/mapper_params_localization.yaml" />
+
+  <include file="$(find-pkg-share course_bot_bringup)/launch/simulation.launch.xml"
+           if="$(var start_simulation)" />
+
+  <!-- 官方定位启动器负责加载序列化位姿图并激活生命周期节点。 -->
+  <include file="$(find-pkg-share slam_toolbox)/launch/localization_launch.py">
+    <arg name="use_sim_time" value="$(var use_sim_time)" />
+    <arg name="slam_params_file" value="$(var slam_params_file)" />
+    <arg name="autostart" value="true" />
+  </include>
+
+  <!--
+    正式验收只使用 SLAM 的 /map 和 TF。未知区域禁止通行，动态障碍层关闭；
+    激光仍由路径跟踪器用于近距离紧急停车，但不作为本阶段主要规划地图来源。
+  -->
+  <node pkg="course_bot_planner" exec="slam_astar_planner"
+        name="course_bot_slam_astar_planner" output="screen">
+    <param name="use_sim_time" value="$(var use_sim_time)" />
+    <param name="unknown_is_blocked" value="true" />
+    <param name="enable_dynamic_obstacles" value="false" />
+  </node>
+
+  <node pkg="course_bot_control" exec="path_follower"
+        name="course_bot_path_follower" output="screen">
+    <param name="use_sim_time" value="$(var use_sim_time)" />
+    <param name="max_linear" value="$(var max_linear)" />
+    <param name="max_angular" value="$(var max_angular)" />
+  </node>
+
+  <node pkg="rviz2" exec="rviz2" name="course_bot_slam_navigation_rviz" output="screen"
+        args="-d $(find-pkg-share course_bot_slam)/rviz/mapping.rviz"
+        if="$(var rviz)" />
+</launch>
