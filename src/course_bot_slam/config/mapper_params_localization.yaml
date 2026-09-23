@@ -15,12 +15,11 @@ slam_toolbox:
     mode: localization
     use_map_saver: false
 
-    # localization_launch.py 会展开 find-pkg-share；这里不写死用户主目录。
-    # 文件名使用共同前缀，不添加 .posegraph 或 .data 扩展名。
-    map_file_name: "$(find-pkg-share course_bot_slam)/maps/course_map"
-    # Gazebo 每次都从建图起点生成机器人，因此优先从位姿图首节点定位。
-    # 若以后改变生成点，可在 RViz 用 2D Pose Estimate 修正。
-    map_start_at_dock: true
+    # Humble 的定位参数解析器不会展开 $(find-pkg-share ...)，必须传实际路径。
+    # 使用安装空间中的共同前缀，不添加 .posegraph 或 .data 扩展名。
+    map_file_name: /home/jiangnan/robot_nav_course_colcon_cpp/install/course_bot_slam/share/course_bot_slam/maps/course_map
+    # 当前仿真每次从建图起点生成机器人；换起点后在 RViz 用 2D Pose Estimate 修正。
+    map_start_pose: [0.0, 0.0, 0.0]
 
     throttle_scans: 1
     scan_queue_size: 1

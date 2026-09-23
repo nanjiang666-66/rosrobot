@@ -154,10 +154,14 @@ ros2 launch course_bot_slam slam_navigation.launch.xml
 4. C++ `path_follower`；
 5. RViz。
 
-Gazebo 每次都从建图时的起点生成机器人，因此配置默认使用位姿图首节点定位。等待地图、
+Gazebo 每次都从建图时的起点生成机器人，因此配置默认使用地图坐标
+`map_start_pose: [0.0, 0.0, 0.0]` 初始化定位。等待地图、
 机器人模型和 `map → odom → base_footprint` 全部稳定后再设置目标。如果机器人显示位置明显
 不正确，在 RViz 顶部选择 **2D Pose Estimate**，在机器人实际起点点击并拖出朝向，然后等待
 激光与地图匹配。
+
+定位参数里的 `map_file_name` 是当前虚拟机安装空间的绝对路径。若更换 Linux 用户名或构建
+目录，需同步修改 `config/mapper_params_localization.yaml`，重新构建后再启动。
 
 定位正常后，在 RViz 顶部选择 **2D Goal Pose**，只能在已经扫描出的白色自由区点击目标。
 规划器会把机器人当前 `map` 坐标作为起点，运行自编 A*，发布 `/planned_path`，路径跟踪器再
