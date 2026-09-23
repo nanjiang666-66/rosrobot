@@ -5,3 +5,6 @@
 *.xml text eol=lf
 *.yaml text eol=lf
 *.xacro text eol=lf
+src/course_bot_slam/maps/*.pgm binary
+src/course_bot_slam/maps/*.posegraph binary
+src/course_bot_slam/maps/*.data binary
