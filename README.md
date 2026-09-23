@@ -45,6 +45,17 @@ ros2 run course_bot_control basic_motion --ros-args \
 
 本项目会调用 ROS 2/Gazebo 官方提供的 `xacro`、`gazebo_ros` 启动器与生成机器人工具；这些外部依赖的实现语言不属于课程项目的自编代码。
 
+## SLAM 建图
+
+`slam-exploration` 分支提供独立建图入口：
+
+```bash
+ros2 launch course_bot_slam slam_mapping.launch.xml
+```
+
+它不会启动 A* 或路径跟踪器。手动扫描、同时保存占据地图与 SLAM 位姿图的方法见
+[`course_bot_slam` 说明](src/course_bot_slam/README.md)。
+
 ## 版本管理
 
 稳定功能保存在 `main`，后续 SLAM 探索功能在 `slam-exploration` 分支开发。日常提交、上传 GitHub、查看历史和恢复旧版本的方法见 [Git 与 GitHub 简明使用流程](docs/git-github-workflow.md)。

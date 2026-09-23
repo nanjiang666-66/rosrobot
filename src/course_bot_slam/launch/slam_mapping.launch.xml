@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!--
+    课程建图总入口：默认同时启动 Gazebo、机器人、slam_toolbox 和 RViz。
+    如果 Gazebo 已在另一个终端运行，可传 start_simulation:=false，避免重复启动。
+  -->
+  <arg name="use_sim_time" default="true" />
+  <arg name="start_simulation" default="true" />
+  <arg name="rviz" default="true" />
+  <arg name="slam_params_file"
+       default="$(find-pkg-share course_bot_slam)/config/mapper_params_online_async.yaml" />
+
+  <include file="$(find-pkg-share course_bot_bringup)/launch/simulation.launch.xml"
+           if="$(var start_simulation)" />
+
+  <!-- 复用底层建图入口，避免维护两份 slam_toolbox 与 RViz 配置。 -->
+  <include file="$(find-pkg-share course_bot_slam)/launch/mapping.launch.xml">
+    <arg name="use_sim_time" value="$(var use_sim_time)" />
+    <arg name="rviz" value="$(var rviz)" />
+    <arg name="slam_params_file" value="$(var slam_params_file)" />
+  </include>
+</launch>
