@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "builtin_interfaces/msg/time.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/path.hpp"
@@ -35,6 +36,7 @@
 
 #include "course_bot_planner/course_world_map.hpp"
 #include "course_bot_planner/odom_anchor.hpp"  // 复用只含 x、y、yaw 的 Pose2D 数据结构。
+#include "course_bot_planner/remaining_path.hpp"
 
 namespace {
 
@@ -121,6 +123,16 @@ public:
     goal_subscription_ = create_subscription<geometry_msgs::msg::PoseStamped>(
         "/goal_pose", 10,
         std::bind(&SlamAstarPlannerNode::on_goal, this, std::placeholders::_1));
+    initial_pose_subscription_ =
+        create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+            "/initialpose", 10,
+            std::bind(&SlamAstarPlannerNode::on_initial_pose, this, std::placeholders::_1));
+    replan_subscription_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+        "/course_bot/replan_request", 10,
+        std::bind(&SlamAstarPlannerNode::on_replan_request, this, std::placeholders::_1));
+    goal_reached_subscription_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+        "/course_bot/goal_reached", 10,
+        std::bind(&SlamAstarPlannerNode::on_goal_reached, this, std::placeholders::_1));
     if (enable_dynamic_obstacles_) {
       scan_subscription_ = create_subscription<sensor_msgs::msg::LaserScan>(
           "/scan", rclcpp::SensorDataQoS(),
@@ -300,8 +312,9 @@ private:
       RCLCPP_INFO(get_logger(), "已接收 SLAM 地图：%d × %d 格，分辨率 %.3f 米。",
                   width, height, resolution);
     }
-    if (changed && have_goal_ && latest_world_pose_) {
-      RCLCPP_INFO(get_logger(), "SLAM 地图有变化，从机器人当前位置重新规划。");
+    if (changed && have_goal_ && latest_world_pose_ && !localization_hold_ &&
+        (!have_plan_result_ || path_intersects_blocked_cell())) {
+      RCLCPP_INFO(get_logger(), "SLAM 地图影响剩余路线，从当前位置重新规划。");
       plan_from(*latest_world_pose_);
     }
   }
@@ -316,6 +329,32 @@ private:
 
   void update_pose_from_tf() {
     try {
+      const auto map_to_odom = tf_buffer_->lookupTransform(
+          "map", "odom", tf2::TimePointZero);
+      const auto tf_stamp = rclcpp::Time(map_to_odom.header.stamp);
+      const double tf_age = (now() - tf_stamp).seconds();
+      if (tf_age > 1.0 || tf_age < -0.5) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                             "map -> odom 定位数据已过期，保持停车等待新数据。");
+        return;
+      }
+      const auto odom_yaw = yaw_from_quaternion(map_to_odom.transform.rotation);
+      if (!odom_yaw || !std::isfinite(map_to_odom.transform.translation.x) ||
+          !std::isfinite(map_to_odom.transform.translation.y)) return;
+      const course_bot_planner::Pose2D correction{
+          map_to_odom.transform.translation.x,
+          map_to_odom.transform.translation.y, *odom_yaw};
+      if (last_map_to_odom_) {
+        const double shift = std::hypot(correction.x - last_map_to_odom_->x,
+                                        correction.y - last_map_to_odom_->y);
+        const double turn = std::abs(std::atan2(
+            std::sin(correction.yaw - last_map_to_odom_->yaw),
+            std::cos(correction.yaw - last_map_to_odom_->yaw)));
+        if (shift > 0.20 || turn > 0.25) {
+          begin_localization_hold("检测到 SLAM 定位跳变");
+        }
+      }
+      last_map_to_odom_ = correction;
       const auto transform = tf_buffer_->lookupTransform(
           "map", base_frame_, tf2::TimePointZero);
       const auto yaw = yaw_from_quaternion(transform.transform.rotation);
@@ -328,12 +367,57 @@ private:
       const bool first_pose = !latest_world_pose_;
       latest_world_pose_ = {transform.transform.translation.x,
                             transform.transform.translation.y, *yaw};
+      last_fresh_pose_at_ = Clock::now();
+      if (localization_hold_ && tf_stamp >= localization_hold_ros_time_) {
+        fresh_tf_after_hold_ = true;
+      }
       publish_world_pose(*latest_world_pose_);
-      if (first_pose && map_ && have_goal_) plan_from(*latest_world_pose_);
+      if (first_pose && map_ && have_goal_ && !localization_hold_) {
+        plan_from(*latest_world_pose_);
+      }
     } catch (const tf2::TransformException &error) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
                            "等待 TF map -> %s：%s", base_frame_.c_str(), error.what());
     }
+  }
+
+  void begin_localization_hold(const char *reason) {
+    const bool first_hold = !localization_hold_;
+    localization_hold_ = true;
+    localization_stable_since_ = Clock::now();
+    localization_hold_ros_time_ = now();
+    fresh_tf_after_hold_ = false;
+    dynamic_replan_pending_ = false;
+    if (first_hold) {
+      // 空路径是明确的取消指令；跟踪器收到后立即发布零速度。
+      path_message_ = nav_msgs::msg::Path{};
+      path_message_.header.frame_id = "map";
+      have_plan_result_ = true;
+      publish_cached();
+      RCLCPP_WARN(get_logger(), "%s：已取消旧路径，等待定位稳定。", reason);
+    }
+  }
+
+  void on_initial_pose(
+      const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr message) {
+    if (message->header.frame_id != "map") return;
+    begin_localization_hold("收到 RViz 位姿修正");
+  }
+
+  void on_replan_request(const geometry_msgs::msg::PoseStamped::SharedPtr) {
+    if (have_goal_) begin_localization_hold("跟踪器请求从当前位置重新规划");
+  }
+
+  void on_goal_reached(const geometry_msgs::msg::PoseStamped::SharedPtr message) {
+    if (!have_goal_ || localization_hold_ || message->header.frame_id != "map") return;
+    if (std::hypot(message->pose.position.x - goal_.x,
+                   message->pose.position.y - goal_.y) > 0.01) return;
+    have_goal_ = false;
+    path_message_ = nav_msgs::msg::Path{};
+    path_message_.header.frame_id = "map";
+    have_plan_result_ = true;
+    publish_cached();
+    RCLCPP_INFO(get_logger(), "目标已完成；后续地图更新不会重新启动旧任务。");
   }
 
   void on_goal(const geometry_msgs::msg::PoseStamped::SharedPtr message) {
@@ -370,7 +454,7 @@ private:
     }
     goal_ = candidate;
     have_goal_ = true;
-    if (!latest_world_pose_) {
+    if (!latest_world_pose_ || localization_hold_) {
       RCLCPP_INFO(get_logger(), "已接收目标 %s；等待 TF 定位。",
                   point_text(goal_.x, goal_.y).c_str());
       return;
@@ -499,18 +583,20 @@ private:
     dynamic_mask_ = std::move(new_mask);
     map_->grid = std::move(updated);
     build_planning_map_message();
-    dynamic_replan_pending_ = have_plan_result_ && path_intersects_blocked_cell();
+    dynamic_replan_pending_ = have_goal_ && have_plan_result_ &&
+                              path_intersects_blocked_cell();
     return true;
   }
 
   bool path_intersects_blocked_cell() const {
-    if (!map_ || path_message_.poses.empty()) return true;
+    if (!map_ || path_message_.poses.empty() || !latest_world_pose_) return true;
+    std::vector<course_bot_planner::WorldPoint> points;
+    points.reserve(path_message_.poses.size());
     for (const auto &pose : path_message_.poses) {
-      const auto cell = map_->world_to_cell(
-          {pose.pose.position.x, pose.pose.position.y});
-      if (!cell || !map_->grid.traversable(*cell)) return true;
+      points.push_back({pose.pose.position.x, pose.pose.position.y});
     }
-    return false;
+    return course_bot_planner::remaining_path_blocked(
+        *map_, points, {latest_world_pose_->x, latest_world_pose_->y});
   }
 
   void plan_from(course_bot_planner::Pose2D start_world) {
@@ -634,6 +720,20 @@ private:
 
   void on_timer() {
     update_pose_from_tf();
+    if (localization_hold_) {
+      const auto stable_for =
+          std::chrono::duration<double>(Clock::now() - localization_stable_since_).count();
+      const bool pose_recent =
+          std::chrono::duration<double>(Clock::now() - last_fresh_pose_at_).count() < 0.5;
+      if (stable_for >= 1.2 && fresh_tf_after_hold_ && pose_recent &&
+          latest_world_pose_ && map_) {
+        localization_hold_ = false;
+        RCLCPP_INFO(get_logger(), "定位已稳定，从最新位置继续导航。");
+        if (have_goal_) plan_from(*latest_world_pose_);
+      }
+      publish_cached();
+      return;
+    }
     const bool dynamic_changed = rebuild_dynamic_grid(Clock::now());
     if (dynamic_changed) publish_planning_map();
     if (dynamic_replan_pending_ && latest_world_pose_ && have_goal_) {
@@ -666,6 +766,12 @@ private:
   bool received_first_map_{false};
   bool have_plan_result_{false};
   bool dynamic_replan_pending_{false};
+  bool localization_hold_{false};
+  Clock::time_point localization_stable_since_{};
+  Clock::time_point last_fresh_pose_at_{};
+  rclcpp::Time localization_hold_ros_time_{0, 0, RCL_ROS_TIME};
+  bool fresh_tf_after_hold_{false};
+  std::optional<course_bot_planner::Pose2D> last_map_to_odom_;
   std::vector<int> dynamic_candidate_hits_;
   std::vector<Clock::time_point> dynamic_last_seen_;
   std::vector<std::uint8_t> dynamic_mask_;
@@ -679,6 +785,10 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr world_pose_publisher_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_subscription_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_subscription_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+      initial_pose_subscription_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr replan_subscription_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_reached_subscription_;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_subscription_;
   rclcpp::TimerBase::SharedPtr timer_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;

@@ -36,6 +36,8 @@ public:
   PathFollower() : Node("course_bot_path_follower") {
     max_linear_ = declare_parameter<double>("max_linear", 0.10);
     max_angular_ = declare_parameter<double>("max_angular", 0.30);
+    // SLAM 入口开启后，路径偏差和短暂数据中断会请求新路径；旧 SDF 入口保持原行为。
+    recoverable_path_errors_ = declare_parameter<bool>("recoverable_path_errors", false);
     laser_stop_distance_ = declare_parameter<double>("laser_stop_distance", 0.40);
     laser_emergency_distance_ = declare_parameter<double>("laser_emergency_distance", 0.25);
     laser_front_half_angle_ = declare_parameter<double>("laser_front_half_angle", 0.52);
@@ -61,6 +63,10 @@ public:
     }
 
     cmd_publisher_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+    replan_publisher_ = create_publisher<geometry_msgs::msg::PoseStamped>(
+        "/course_bot/replan_request", 10);
+    goal_reached_publisher_ = create_publisher<geometry_msgs::msg::PoseStamped>(
+        "/course_bot/goal_reached", 10);
     path_subscription_ = create_subscription<nav_msgs::msg::Path>(
         "/planned_path", 10, std::bind(&PathFollower::on_path, this, std::placeholders::_1));
     pose_subscription_ = create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -106,14 +112,19 @@ private:
     }
     if (message->poses.empty()) {
       const bool had_path = !path_.empty();
+      const bool completed = state_ == State::Done;
       publish_stop();
       path_.clear();
       target_index_ = 0;
       state_ = State::Waiting;
       last_path_time_ = Clock::now();
-      if (had_path) RCLCPP_WARN(get_logger(), "规划器取消了当前路径，机器人停车等待新目标。");
+      if (had_path && !completed) {
+        RCLCPP_WARN(get_logger(), "规划器取消了当前路径，机器人停车等待新路径。");
+      }
       return;
     }
+    // 等待传感器恢复时，即使规划器重发了缓存路径，也不能提前启动车轮。
+    if (waiting_for_sensors_) return;
     if (message->poses.size() < 2) {
       stop_with_fault("非空路径至少需要起点和终点两个位置");
       return;
@@ -228,6 +239,19 @@ private:
       publish_stop();
       return;
     }
+    if (waiting_for_sensors_) {
+      publish_stop();
+      const auto now = Clock::now();
+      const bool sensors_fresh = have_pose_ && have_odom_ && have_scan_ &&
+          std::chrono::duration<double>(now - last_pose_time_).count() <= 1.0 &&
+          std::chrono::duration<double>(now - last_odom_time_).count() <= 1.0 &&
+          std::chrono::duration<double>(now - last_scan_time_).count() <= 1.0;
+      if (sensors_fresh) {
+        waiting_for_sensors_ = false;
+        request_replan("位姿、里程计和激光数据已恢复");
+      }
+      return;
+    }
     if (path_.empty() || !have_pose_ || !have_odom_ || !have_scan_) {
       publish_stop();
       return;
@@ -235,25 +259,25 @@ private:
 
     const auto now = Clock::now();
     if (std::chrono::duration<double>(now - last_pose_time_).count() > 1.0) {
-      stop_with_fault("超过 1 秒未收到机器人位姿");
+      wait_for_sensors("超过 1 秒未收到机器人位姿");
       return;
     }
     if (std::chrono::duration<double>(now - last_odom_time_).count() > 1.0) {
-      stop_with_fault("超过 1 秒未收到 /odom");
+      wait_for_sensors("超过 1 秒未收到 /odom");
       return;
     }
     if (std::chrono::duration<double>(now - last_scan_time_).count() > 1.0) {
-      stop_with_fault("超过 1 秒未收到 /scan，无法保证近距离安全");
+      wait_for_sensors("超过 1 秒未收到 /scan，无法保证近距离安全");
       return;
     }
     if (std::chrono::duration<double>(now - last_path_time_).count() > 3.0) {
-      stop_with_fault("超过 3 秒未收到规划路径，规划节点可能已退出");
+      stop_or_request_replan("超过 3 秒未收到规划路径，规划节点可能已退出");
       return;
     }
     if (state_ == State::Waiting) {
       const auto current = course_bot_control::PlanarPoint{current_pose_.x, current_pose_.y};
       if (point_distance(current, path_.front()) > 0.25) {
-        stop_with_fault("机器人离路径起点超过 0.25 米，请重启仿真并重新规划");
+        stop_or_request_replan("机器人离路径起点超过 0.25 米");
         return;
       }
       state_ = State::Following;
@@ -271,7 +295,7 @@ private:
       nearest_distance = std::min(nearest_distance, point_distance(current, point));
     }
     if (nearest_distance > 0.30) {
-      stop_with_fault("机器人偏离规划路线超过 0.30 米");
+      stop_or_request_replan("机器人偏离规划路线超过 0.30 米");
       return;
     }
 
@@ -287,6 +311,15 @@ private:
     if (target_index_ == path_.size()) {
       state_ = State::Done;
       publish_stop();
+      if (recoverable_path_errors_) {
+        geometry_msgs::msg::PoseStamped completed;
+        completed.header.frame_id = "map";
+        completed.header.stamp = this->now();
+        completed.pose.position.x = path_.back().x;
+        completed.pose.position.y = path_.back().y;
+        completed.pose.orientation.w = 1.0;
+        goal_reached_publisher_->publish(completed);
+      }
       RCLCPP_INFO(get_logger(),
                   "已到达目标点，机器人停车并等待下一条新路径；可在 RViz 点击新目标。");
       return;
@@ -309,6 +342,40 @@ private:
 
   void publish_stop() { cmd_publisher_->publish(geometry_msgs::msg::Twist{}); }
 
+  void wait_for_sensors(const std::string &reason) {
+    if (!recoverable_path_errors_) {
+      stop_with_fault(reason);
+      return;
+    }
+    publish_stop();
+    path_.clear();
+    target_index_ = 0;
+    state_ = State::Waiting;
+    waiting_for_sensors_ = true;
+    RCLCPP_WARN(get_logger(), "安全停车：%s；等待传感器恢复后再规划。", reason.c_str());
+  }
+
+  void request_replan(const std::string &reason) {
+    publish_stop();
+    path_.clear();
+    target_index_ = 0;
+    state_ = State::Waiting;
+    geometry_msgs::msg::PoseStamped request;
+    request.header.frame_id = "map";
+    request.header.stamp = this->now();
+    request.pose.orientation.w = 1.0;
+    replan_publisher_->publish(request);
+    RCLCPP_WARN(get_logger(), "安全停车：%s；等待从当前位置重新规划。", reason.c_str());
+  }
+
+  void stop_or_request_replan(const std::string &reason) {
+    if (!recoverable_path_errors_) {
+      stop_with_fault(reason);
+      return;
+    }
+    request_replan(reason);
+  }
+
   void stop_with_fault(const std::string &reason) {
     if (state_ == State::Fault || state_ == State::Done) return;
     state_ = State::Fault;
@@ -319,6 +386,8 @@ private:
   State state_{State::Waiting};
   double max_linear_{0.10};
   double max_angular_{0.30};
+  bool recoverable_path_errors_{false};
+  bool waiting_for_sensors_{false};
   double laser_stop_distance_{0.40};
   double laser_emergency_distance_{0.25};
   double laser_front_half_angle_{0.52};
@@ -336,6 +405,8 @@ private:
   Clock::time_point last_path_time_{};
   Clock::time_point started_at_{};
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr replan_publisher_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_reached_publisher_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_subscription_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_subscription_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;

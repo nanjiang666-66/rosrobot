@@ -67,6 +67,10 @@ if(BUILD_TESTING)
   target_link_libraries(test_course_world_map course_bot_astar)
   add_test(NAME course_world_map COMMAND test_course_world_map)
 
+  add_executable(test_remaining_path test/test_remaining_path.cpp)
+  target_link_libraries(test_remaining_path course_bot_astar)
+  add_test(NAME remaining_path COMMAND test_remaining_path)
+
   add_executable(test_odom_anchor test/test_odom_anchor.cpp)
   target_link_libraries(test_odom_anchor course_bot_astar)
   add_test(NAME odom_anchor COMMAND test_odom_anchor)

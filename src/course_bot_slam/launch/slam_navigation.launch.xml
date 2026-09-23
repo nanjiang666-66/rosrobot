@@ -38,6 +38,7 @@
     <param name="use_sim_time" value="$(var use_sim_time)" />
     <param name="max_linear" value="$(var max_linear)" />
     <param name="max_angular" value="$(var max_angular)" />
+    <param name="recoverable_path_errors" value="true" />
   </node>
 
   <node pkg="rviz2" exec="rviz2" name="course_bot_slam_navigation_rviz" output="screen"

@@ -10,9 +10,9 @@
 
 ## 重要限制
 
-`slam_mapping.launch.xml` 和 `navigation.launch.xml` 是两个独立实验，不能同时运行：SLAM 与
-SDF 规划器都会发布 `/map` 和 `map → odom`。课程自主导航默认使用稳定的 SDF 模式；
-SLAM 建图暂时单独学习和保存，不接管导航。
+`slam_mapping.launch.xml`、`slam_navigation.launch.xml` 和 `navigation.launch.xml` 应分别运行，
+不能同时启动。建图与 SLAM 导航会各自启动 `slam_toolbox`；SDF 导航还会独立发布 `/map` 和
+`map → odom`。请先关闭上一种模式，再启动下一种。
 
 ## 一键启动建图
 
@@ -164,6 +164,14 @@ ros2 launch course_bot_slam slam_navigation.launch.xml
 生成点，默认初值也不再适用。这两种情况都应先在 RViz 顶部选择 **2D Pose Estimate**，
 在地图中小车当前实际位置点击并拖出朝向，等待激光与地图匹配。无法确认实际位置时，
 关闭旧仿真并重新启动 Gazebo，让机器人回到固定生成点，再重新启动定位导航。
+
+运行中修正位姿时，SLAM 导航会先取消旧路径并停车，等待新的定位数据稳定约 1.2 秒，
+然后从最新位置为尚未完成的目标重新运行 A*；通常不需要重启 Gazebo。如果跟踪器暂时
+收不到位姿、里程计或激光，也会先停车，等数据恢复后请求新路径。地图更新但未挡住
+剩余路线时不会重新规划。到达终点后旧目标会被清除，不会因地图更新而再次启动。
+这些恢复仅针对本次运行中的定位修正；目前**不会保存上次停车位姿**，重启 Gazebo
+仍从固定生成点启动。手动给出错误的 `2D Pose Estimate` 可能让激光与地图不匹配，
+应先确认红色扫描点与地图障碍边界对齐，再发送目标。
 
 定位参数里的 `map_file_name` 是当前虚拟机安装空间的绝对路径。若更换 Linux 用户名或构建
 目录，需同步修改 `config/mapper_params_localization.yaml`，重新构建后再启动。
