@@ -154,11 +154,16 @@ ros2 launch course_bot_slam slam_navigation.launch.xml
 4. C++ `path_follower`；
 5. RViz。
 
-Gazebo 每次都从建图时的起点生成机器人，因此配置默认使用地图坐标
-`map_start_pose: [0.0, 0.0, 0.0]` 初始化定位。等待地图、
-机器人模型和 `map → odom → base_footprint` 全部稳定后再设置目标。如果机器人显示位置明显
-不正确，在 RViz 顶部选择 **2D Pose Estimate**，在机器人实际起点点击并拖出朝向，然后等待
-激光与地图匹配。
+保存地图中的障碍物坐标与 Gazebo 世界坐标基本对齐。机器人由
+`course_bot_gazebo/launch/gazebo.launch.xml` 固定生成在 `(-4.0, -3.0)`，所以定位初值设为
+`map_start_pose: [-4.0, -3.0, 0.0]`。这个值只告诉定位节点从地图哪里开始匹配激光，
+不会移动 Gazebo 机器人。等待地图、机器人模型和 `map → odom → base_footprint` 稳定，
+检查 RViz 红色激光点是否与黑色障碍边界重合，再设置导航目标。
+
+如果只重启 RViz/定位节点而 Gazebo 继续运行，小车会留在上次停止位置；如果改变机器人
+生成点，默认初值也不再适用。这两种情况都应先在 RViz 顶部选择 **2D Pose Estimate**，
+在地图中小车当前实际位置点击并拖出朝向，等待激光与地图匹配。无法确认实际位置时，
+关闭旧仿真并重新启动 Gazebo，让机器人回到固定生成点，再重新启动定位导航。
 
 定位参数里的 `map_file_name` 是当前虚拟机安装空间的绝对路径。若更换 Linux 用户名或构建
 目录，需同步修改 `config/mapper_params_localization.yaml`，重新构建后再启动。

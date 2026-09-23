@@ -18,8 +18,10 @@ slam_toolbox:
     # Humble 的定位参数解析器不会展开 $(find-pkg-share ...)，必须传实际路径。
     # 使用安装空间中的共同前缀，不添加 .posegraph 或 .data 扩展名。
     map_file_name: /home/jiangnan/robot_nav_course_colcon_cpp/install/course_bot_slam/share/course_bot_slam/maps/course_map
-    # 当前仿真每次从建图起点生成机器人；换起点后在 RViz 用 2D Pose Estimate 修正。
-    map_start_pose: [0.0, 0.0, 0.0]
+    # 已保存地图的 map 坐标与 Gazebo 世界坐标基本对齐；机器人固定生成在 (-4, -3)。
+    # 这里是启动时的定位初值，不会移动 Gazebo 机器人。换生成点或复用未重启的
+    # Gazebo 时，在 RViz 用 2D Pose Estimate 指定机器人当前实际位置和朝向。
+    map_start_pose: [-4.0, -3.0, 0.0]
 
     throttle_scans: 1
     scan_queue_size: 1
