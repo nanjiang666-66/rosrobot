@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- 只替换 Gazebo 世界；建图仍由原 slam_mapping.launch.xml 完成。 -->
+  <arg name="start_simulation" default="true" />
+  <arg name="rviz" default="true" />
+  <include file="$(find-pkg-share course_bot_slam)/launch/slam_mapping.launch.xml">
+    <arg name="start_simulation" value="$(var start_simulation)" />
+    <arg name="rviz" value="$(var rviz)" />
+    <arg name="world" value="$(find-pkg-share course_bot_gazebo)/worlds/course_challenge.world" />
+  </include>
+</launch>

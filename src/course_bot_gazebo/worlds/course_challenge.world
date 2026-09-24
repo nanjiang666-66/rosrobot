@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <world name="course_challenge">
+    <!-- 独立演示世界：不修改原 course_obstacles.world 和已保存的课程地图。 -->
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <physics name="default_physics" type="ode">
+      <real_time_update_rate>1000</real_time_update_rate>
+      <max_step_size>0.001</max_step_size>
+    </physics>
+    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+      <ros><namespace>/gazebo</namespace></ros>
+      <update_rate>20</update_rate>
+    </plugin>
+    <gui fullscreen="0">
+      <camera name="challenge_camera"><pose>-7 -9 8 0 0.55 0.75</pose></camera>
+    </gui>
+
+    <!-- 四面墙围成 10 m × 10 m 的可扫描区域。 -->
+    <model name="challenge_boundary_west">
+      <static>true</static><pose>-5.1 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 10.4 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 10.4 1.0</size></box></geometry>
+          <material><ambient>0.35 0.35 0.38 1</ambient><diffuse>0.35 0.35 0.38 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="challenge_boundary_east">
+      <static>true</static><pose>5.1 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 10.4 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 10.4 1.0</size></box></geometry>
+          <material><ambient>0.35 0.35 0.38 1</ambient><diffuse>0.35 0.35 0.38 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="challenge_boundary_south">
+      <static>true</static><pose>0 -5.1 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>10.0 0.2 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>10.0 0.2 1.0</size></box></geometry>
+          <material><ambient>0.35 0.35 0.38 1</ambient><diffuse>0.35 0.35 0.38 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="challenge_boundary_north">
+      <static>true</static><pose>0 5.1 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>10.0 0.2 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>10.0 0.2 1.0</size></box></geometry>
+          <material><ambient>0.35 0.35 0.38 1</ambient><diffuse>0.35 0.35 0.38 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 第一堵隔墙接到南边界，只能从北侧绕过去。 -->
+    <model name="challenge_wall_south">
+      <static>true</static><pose>-1.6 -1.75 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.3 6.5 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.3 6.5 1.0</size></box></geometry>
+          <material><ambient>0.82 0.24 0.18 1</ambient><diffuse>0.82 0.24 0.18 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <!-- 第二堵隔墙接到北边界，只能从南侧绕过去。 -->
+    <model name="challenge_wall_north">
+      <static>true</static><pose>1.6 1.75 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.3 6.5 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.3 6.5 1.0</size></box></geometry>
+          <material><ambient>0.18 0.42 0.85 1</ambient><diffuse>0.18 0.42 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

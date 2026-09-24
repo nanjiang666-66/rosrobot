@@ -7,6 +7,11 @@
 - `course_map.posegraph`：SLAM Toolbox 序列化位姿图；
 - `course_map.data`：与位姿图配套的激光数据。
 
+交错隔墙演示单独使用 `challenge_map.pgm`、`challenge_map.yaml`、
+`challenge_map.posegraph`、`challenge_map.data`，通过
+`challenge_mapping.launch.xml` 建图。不要把普通场景的 `course_map.*`
+改名后用于挑战世界；障碍位置并不相同。
+
 `PGM/YAML` 适合显示和地图服务器读取；SLAM Toolbox 定位模式需要
 `posegraph/data`。不要手工编辑二进制位姿图文件，也不要只复制其中一个文件。
 

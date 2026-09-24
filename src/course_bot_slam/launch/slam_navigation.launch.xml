@@ -9,11 +9,15 @@
   <arg name="rviz" default="true" />
   <arg name="max_linear" default="0.08" />
   <arg name="max_angular" default="0.25" />
+  <arg name="safety_margin" default="0.10" />
+  <arg name="world" default="$(find-pkg-share course_bot_gazebo)/worlds/course_obstacles.world" />
   <arg name="slam_params_file"
        default="$(find-pkg-share course_bot_slam)/config/mapper_params_localization.yaml" />
 
   <include file="$(find-pkg-share course_bot_bringup)/launch/simulation.launch.xml"
-           if="$(var start_simulation)" />
+           if="$(var start_simulation)">
+    <arg name="world" value="$(var world)" />
+  </include>
 
   <!-- 官方定位启动器负责加载序列化位姿图并激活生命周期节点。 -->
   <include file="$(find-pkg-share slam_toolbox)/launch/localization_launch.py">
@@ -31,6 +35,7 @@
     <param name="use_sim_time" value="$(var use_sim_time)" />
     <param name="unknown_is_blocked" value="true" />
     <param name="enable_dynamic_obstacles" value="false" />
+    <param name="safety_margin" value="$(var safety_margin)" />
   </node>
 
   <node pkg="course_bot_control" exec="path_follower"

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- 独立挑战导航：只切换世界和位姿图，继续使用相同的自编 C++ A*。 -->
+  <arg name="start_simulation" default="true" />
+  <arg name="rviz" default="true" />
+  <arg name="max_linear" default="0.10" />
+  <arg name="max_angular" default="0.30" />
+  <arg name="safety_margin" default="0.20" />
+  <include file="$(find-pkg-share course_bot_slam)/launch/slam_navigation.launch.xml">
+    <arg name="start_simulation" value="$(var start_simulation)" />
+    <arg name="rviz" value="$(var rviz)" />
+    <arg name="max_linear" value="$(var max_linear)" />
+    <arg name="max_angular" value="$(var max_angular)" />
+    <!-- 隔墙转角留出额外余量，避免雷达近距离保护反复触发。 -->
+    <arg name="safety_margin" value="$(var safety_margin)" />
+    <arg name="world" value="$(find-pkg-share course_bot_gazebo)/worlds/course_challenge.world" />
+    <arg name="slam_params_file"
+         value="$(find-pkg-share course_bot_slam)/config/mapper_params_localization_challenge.yaml" />
+  </include>
+</launch>

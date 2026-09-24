@@ -9,6 +9,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <exec_depend>course_bot_description</exec_depend>
   <exec_depend>course_bot_bringup</exec_depend>
+  <exec_depend>course_bot_gazebo</exec_depend>
   <exec_depend>course_bot_planner</exec_depend>
   <exec_depend>course_bot_control</exec_depend>
   <exec_depend>nav2_map_server</exec_depend>

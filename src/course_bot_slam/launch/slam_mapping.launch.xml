@@ -7,11 +7,14 @@
   <arg name="use_sim_time" default="true" />
   <arg name="start_simulation" default="true" />
   <arg name="rviz" default="true" />
+  <arg name="world" default="$(find-pkg-share course_bot_gazebo)/worlds/course_obstacles.world" />
   <arg name="slam_params_file"
        default="$(find-pkg-share course_bot_slam)/config/mapper_params_online_async.yaml" />
 
   <include file="$(find-pkg-share course_bot_bringup)/launch/simulation.launch.xml"
-           if="$(var start_simulation)" />
+           if="$(var start_simulation)">
+    <arg name="world" value="$(var world)" />
+  </include>
 
   <!-- 复用底层建图入口，避免维护两份 slam_toolbox 与 RViz 配置。 -->
   <include file="$(find-pkg-share course_bot_slam)/launch/mapping.launch.xml">

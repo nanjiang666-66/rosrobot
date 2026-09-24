@@ -1,8 +1,10 @@
 # course_bot_slam
 
-本包包含两种启动方式：
+本包包含以下启动方式：
 
 - `slam_mapping.launch.xml`：课程建图总入口，一条命令启动 Gazebo、机器人、SLAM 和 RViz。
+- `challenge_mapping.launch.xml`：独立交错隔墙世界的建图入口。
+- `challenge_navigation.launch.xml`：加载独立挑战地图，演示明显绕行的自编 A* 导航。
 - `mapping.launch.xml`：底层建图入口，只启动 SLAM 和 RViz，供 Gazebo 已运行时复用。
 - `slam_navigation.launch.xml`：加载已保存位姿图，运行 SLAM 定位、自编 A* 和路径跟踪。
 - `navigation.launch.xml`：稳定课程导航，启动 Gazebo、SDF 基础地图、自编 C++ A*、
@@ -10,8 +12,8 @@
 
 ## 重要限制
 
-`slam_mapping.launch.xml`、`slam_navigation.launch.xml` 和 `navigation.launch.xml` 应分别运行，
-不能同时启动。建图与 SLAM 导航会各自启动 `slam_toolbox`；SDF 导航还会独立发布 `/map` 和
+普通与挑战模式的建图、SLAM 导航，以及 `navigation.launch.xml` 都应分别运行，不能
+同时启动。建图与 SLAM 导航会各自启动 `slam_toolbox`；SDF 导航还会独立发布 `/map` 和
 `map → odom`。请先关闭上一种模式，再启动下一种。
 
 ## 一键启动建图
@@ -237,6 +239,10 @@ ros2 launch course_bot_slam navigation.launch.xml \
 `max_linear` 单位为 m/s，允许范围为 0.04～0.15；`max_angular` 单位为 rad/s，
 允许范围为 0.10～0.50。学习和调试时建议不要超过 `0.10/0.30`。
 
+速度参数在启动时由 `path_follower` 读取；当前代码没有运行时参数回调，所以
+`ros2 param set` 即使显示设置成功，也不会立即改变车速。需要先安全停车，
+再用新的 `max_linear` / `max_angular` 参数重启对应的导航入口。
+
 启动完成后：
 
 1. 等待固定 10 m × 10 m 地图、机器人和雷达出现。
@@ -272,3 +278,65 @@ ros2 run tf2_ros tf2_echo map base_footprint
 
 `/map` 是包含安全膨胀区和临时障碍的规划地图。SDF 中后来保存的新静态模型需重启规划
 节点后读取；仿真运行中临时加入的模型不需要重启，由雷达动态识别。
+
+## 独立的交错隔墙 A* 演示
+
+这套演示不覆盖原来的 `course_obstacles.world` 或 `course_map.*`。新世界中的红墙从南边界
+延伸，只能从上方绕过；蓝墙从北边界延伸，只能从下方绕过。固定起点为 `(-4,-3)`，推荐
+终点为 `(4,-3)`。因此路径需要先向北绕红墙，再向南绕蓝墙，而不是直接横穿墙壁。
+这不是让 A* 故意走远；它仍在实际可通行区域内搜索最短路径。
+挑战入口的安全余量默认 `0.20 m`，比普通导航的 `0.10 m` 更宽，转墙角时更稳妥。
+
+先关闭现有的 Gazebo、SLAM 和导航程序，在终端 A 构建并进入挑战建图模式：
+
+```bash
+cd /mnt/hgfs/ubuntu-workspace/robot_nav_course
+bash scripts/stage2_build.sh
+source ~/robot_nav_course_colcon_cpp/install/setup.bash
+ros2 launch course_bot_slam challenge_mapping.launch.xml
+```
+
+终端 B 用键盘遥控逐步扫描：先从红墙北端绕入两墙之间，再从蓝墙南端绕到东侧，尽量扫描
+整条通道和边界，最后可回到起点附近帮助闭环。建图阶段没有自主防撞，请低速操作：
+
+```bash
+source ~/robot_nav_course_colcon_cpp/install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+确认 RViz 中起点、两个绕行口、终点附近都已变成白色已知区域，黑色墙体清晰后，停止
+小车但保持建图节点运行。在终端 C 保存**独立**地图与位姿图：
+
+```bash
+source ~/robot_nav_course_colcon_cpp/install/setup.bash
+ros2 run nav2_map_server map_saver_cli -f \
+  /mnt/hgfs/ubuntu-workspace/robot_nav_course/src/course_bot_slam/maps/challenge_map \
+  --ros-args -p map_subscribe_transient_local:=true
+ros2 service call /slam_toolbox/serialize_map \
+  slam_toolbox/srv/SerializePoseGraph \
+  "{filename: '/mnt/hgfs/ubuntu-workspace/robot_nav_course/src/course_bot_slam/maps/challenge_map'}"
+```
+
+检查 `challenge_map.pgm`、`.yaml`、`.posegraph` 和 `.data` 四个文件都已生成。然后关闭
+建图、遥控和 Gazebo，**再次构建**，把新地图安装到 ROS 工作空间，最后启动挑战导航：
+
+```bash
+cd /mnt/hgfs/ubuntu-workspace/robot_nav_course
+bash scripts/stage2_build.sh
+source ~/robot_nav_course_colcon_cpp/install/setup.bash
+ros2 launch course_bot_slam challenge_navigation.launch.xml \
+  max_linear:=0.10 max_angular:=0.30
+```
+
+等激光点与黑色墙体对齐后，在 RViz 用 **2D Goal Pose** 点击右侧 `(4,-3)` 附近的白色
+区域。另一种方法是终端发布目标：
+
+```bash
+ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
+  "{header: {frame_id: map}, pose: {position: {x: 4.0, y: -3.0, z: 0.0}, orientation: {w: 1.0}}}"
+```
+
+挑战定位参数使用 `config/mapper_params_localization_challenge.yaml`，只读取
+`challenge_map.posegraph/data`。如果更换 Ubuntu 用户名或构建目录，需要修改该文件中的
+`map_file_name` 绝对路径并重新构建。**不能把原 `course_map.*` 直接用于新世界**：地图和
+实际墙体不匹配会造成定位错误及碰撞风险。
